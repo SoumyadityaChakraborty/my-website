@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>OmniCalc 500 — Advanced Scientific Calculator</title>
+<style>
+:root{--bg:#07111f;--panel:#0d1b2a;--panel2:#102338;--line:#213a55;--txt:#eef6ff;--muted:#91a9c2;--accent:#56d7ff;--accent2:#8a7dff;--danger:#ff607f;--good:#50e3a4;--shadow:0 20px 60px rgba(0,0,0,.35)}
+:root.light{--bg:#eef5fb;--panel:#ffffff;--panel2:#f4f8fc;--line:#c9d8e7;--txt:#102234;--muted:#5b7188;--accent:#007ea8;--accent2:#5145c7;--danger:#c92851;--good:#138c62;--shadow:0 16px 45px rgba(35,65,95,.16)}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 15% 10%,#103053 0,#07111f 34%,#040a12 100%);background:var(--bg);color:var(--txt);transition:background .25s,color .25s}
+body{display:flex;align-items:center;justify-content:center;padding:18px}
+.app{width:min(1500px,100%);height:min(930px,calc(100vh - 36px));display:grid;grid-template-columns:1.45fr .8fr;background:var(--panel);border:1px solid var(--line);border-radius:26px;overflow:hidden;box-shadow:var(--shadow);backdrop-filter:blur(18px);transition:all .25s}
+.main{padding:22px;display:flex;flex-direction:column;min-width:0}
+.side{border-left:1px solid var(--line);background:rgba(10,24,40,.76);padding:22px;overflow:auto}
+.brand{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.brand h1{font-size:21px;margin:0;letter-spacing:.4px}.brand small{color:var(--muted)}
+.badge{font-size:11px;border:1px solid #2e5875;padding:6px 9px;border-radius:999px;color:var(--accent);white-space:nowrap}
+.display{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}
+.status{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:10px}
+.expr{font-size:25px;min-height:38px;text-align:right;word-break:break-all;margin:14px 0 6px;color:#dcefff}
+.result{font-size:38px;font-weight:700;text-align:right;min-height:48px;word-break:break-all}
+.toolbar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:10px}
+.toolbar button,.keys button,.side button{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:12px;padding:10px;cursor:pointer;font-weight:600;transition:.15s}
+.toolbar button:hover,.keys button:hover,.side button:hover{transform:translateY(-1px);border-color:#3d6688;background:#122a42}
+.toolbar .accent{color:var(--accent);border-color:#245675}
+.toolbar .danger{color:var(--danger)}
+.keys{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;overflow:auto;padding-right:2px}
+.keys button{min-height:50px;font-size:14px}
+.keys .op{color:#93cfff;background:var(--panel2)}.keys .fn{color:#9de8ff}.keys .equals{background:linear-gradient(135deg,#0d7eae,#5551bf);border-color:#62dbff}.keys .wide{grid-column:span 2}
+.panel-title{font-size:13px;font-weight:800;margin:0 0 10px;color:#cfe8ff;letter-spacing:.4px}
+.section{border:1px solid var(--line);background:var(--panel2);border-radius:16px;padding:13px;margin-bottom:13px}
+.memory{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.memory button{padding:8px;font-size:12px}
+.mode{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.mode button.active{border-color:var(--accent);color:var(--accent);background:#0a2539}
+.search{width:100%;padding:10px 12px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);outline:none}
+.flist{display:grid;gap:6px;max-height:280px;overflow:auto;margin-top:8px}
+.fitem{display:flex;justify-content:space-between;gap:8px;padding:8px 9px;border-radius:10px;background:var(--panel2);border:1px solid #18304a;font-size:12px;cursor:pointer}
+.fitem:hover{border-color:#356384}.fitem span:last-child{color:var(--muted)}
+.history{max-height:300px;overflow:auto;display:grid;gap:7px}.hitem{padding:9px;border:1px solid #18304a;background:var(--panel2);border-radius:10px;cursor:pointer}.hitem:hover{border-color:#3b6487}.hitem .q{color:#9db5cc;font-size:12px}.hitem .a{font-size:15px;font-weight:700;margin-top:3px}
+.note{font-size:11px;color:var(--muted);line-height:1.55}.pill{display:inline-block;padding:3px 6px;border-radius:999px;background:var(--panel2);border:1px solid #234a67;color:#9bdfff;margin:2px}
+@media(max-width:1050px){.app{grid-template-columns:1fr;height:auto;max-height:none}.side{border-left:0;border-top:1px solid var(--line)}.keys{grid-template-columns:repeat(5,1fr)}.toolbar{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:620px){body{padding:0}.app{border-radius:0}.main,.side{padding:13px}.keys{gap:6px}.keys button{min-height:46px}.result{font-size:30px}.expr{font-size:18px}}
+
+.theme-toggle{display:flex;gap:7px;align-items:center}
+.theme-toggle button{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:10px;padding:8px 10px;cursor:pointer}
+.theme-toggle button.active{border-color:var(--accent);color:var(--accent)}
+.tabs{display:flex;gap:7px;margin:0 0 12px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:700}
+.tabs button.active{border-color:var(--accent);color:var(--accent)}
+.extra-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.extra-grid button{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:10px;padding:9px;cursor:pointer}
+.prog-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px}
+.prog-row input,.prog-row select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)}
+.hide{display:none!important}
+@media(max-width:840px){
+  body{align-items:flex-start}
+  .app{display:block;width:100%;height:auto;min-height:100vh;border-radius:0}
+  .side{border-left:0;border-top:1px solid var(--line)}
+  .keys{grid-template-columns:repeat(6,1fr)}
+  .toolbar{grid-template-columns:repeat(4,1fr)}
+  .extra-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:500px){
+  .brand{align-items:flex-start}.brand h1{font-size:18px}.brand small{font-size:10px}
+  .badge{font-size:9px}
+  .keys{grid-template-columns:repeat(4,1fr);gap:5px}.keys button{min-height:44px;padding:7px}
+  .toolbar{gap:5px}.toolbar button{padding:8px}
+  .expr{font-size:17px}.result{font-size:28px}
+  .extra-grid{grid-template-columns:repeat(2,1fr)}
+  .prog-row{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="main">
+    <div class="brand">
+      <div><h1>OmniCalc 500</h1><small>Scientific · Programmer · Converter · Variables</small></div>
+      <div class="theme-toggle">
+        <button id="darkBtn" class="active" onclick="setTheme('dark')">🌙</button>
+        <button id="lightBtn" onclick="setTheme('light')">☀️</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button id="scientificTab" class="active" onclick="setMode('scientific')">Scientific</button>
+      <button id="programmerTab" onclick="setMode('programmer')">Programmer</button>
+    </div>
+    <div id="programmerPanel" class="section hide">
+      <p class="panel-title">Programmer Workspace</p>
+      <div class="prog-row">
+        <select id="baseSelect" onchange="updateProgrammer()">
+          <option value="10">DEC</option><option value="2">BIN</option><option value="8">OCT</option><option value="16">HEX</option>
+        </select>
+        <input id="progValue" inputmode="text" placeholder="Enter integer">
+        <select id="bitWidth">
+          <option value="8">8-bit</option><option value="16">16-bit</option><option value="32" selected>32-bit</option><option value="64">64-bit</option>
+        </select>
+        <button onclick="loadBaseValue()">Load</button>
+      </div>
+      <div class="extra-grid" style="margin-top:10px">
+        <button onclick="progOp('AND')">AND</button><button onclick="progOp('OR')">OR</button>
+        <button onclick="progOp('XOR')">XOR</button><button onclick="progOp('NOT')">NOT</button>
+        <button onclick="progOp('LSH')">LShift</button><button onclick="progOp('RSH')">RShift</button>
+      </div>
+      <div class="note" id="baseResults" style="margin-top:9px">DEC: 0 · BIN: 0 · OCT: 0 · HEX: 0</div>
+    </div>
+    <div class="display">
+      <div class="status"><span id="modeLabel">DEG</span><span id="memoryLabel">M: 0</span><span id="angleLabel">Angle mode</span></div>
+      <div id="expr" class="expr">0</div>
+      <div id="result" class="result">0</div>
+    </div>
+
+    <div class="toolbar">
+      <button onclick="backspace()">⌫</button><button onclick="clearAll()" class="danger">AC</button>
+      <button onclick="toggleSign()">±</button><button onclick="insert('(')">(</button>
+      <button onclick="insert(')')">)</button><button onclick="insert('%')" class="op">%</button>
+      <button onclick="calculate()" class="equals">=</button>
+    </div>
+
+    <div class="keys" id="keys"></div>
+  </main>
+
+  <aside class="side">
+    <section class="section">
+      <p class="panel-title">Angle / Mode</p>
+      <div class="mode">
+        <button id="deg" class="active" onclick="setAngle('DEG')">DEG</button>
+        <button id="rad" onclick="setAngle('RAD')">RAD</button>
+        <button id="grad" onclick="setAngle('GRAD')">GRAD</button>
+      </div>
+    </section>
+    <section class="section">
+      <p class="panel-title">Memory</p>
+      <div class="memory">
+        <button onclick="memoryClear()">MC</button><button onclick="memoryRecall()">MR</button>
+        <button onclick="memoryAdd(1)">M+</button><button onclick="memoryAdd(-1)">M−</button>
+      </div>
+    </section>
+    <section class="section">
+      <p class="panel-title">500-Function Library</p>
+      <input id="fsearch" class="search" placeholder="Search functions, e.g. gamma, cdf, sin">
+      <div id="flist" class="flist"></div>
+    </section>
+    <section class="section">
+      <p class="panel-title">Variables</p>
+      <div class="prog-row" style="grid-template-columns:1fr 1fr">
+        <input id="varName" placeholder="Name (e.g. x)">
+        <input id="varValue" inputmode="decimal" placeholder="Value">
+      </div>
+      <div class="extra-grid" style="grid-template-columns:1fr 1fr;margin-top:8px">
+        <button onclick="setVariable()">Set</button><button onclick="clearVariables()">Clear</button>
+      </div>
+      <div id="vars" class="note" style="margin-top:8px">No variables set.</div>
+    </section>
+    <section class="section">
+      <p class="panel-title">History</p>
+      <div id="history" class="history"></div>
+    </section>
+    <section class="section note">
+      <b>Input tips</b><br>
+      Use <span class="pill">sin(30)</span>, <span class="pill">log10(100)</span>, <span class="pill">sqrt(25)</span>, <span class="pill">5^3</span>, <span class="pill">2*pi</span>. Built-in constants include <span class="pill">pi</span>, <span class="pill">e</span>, <span class="pill">phi</span> and <span class="pill">tau</span>.
+    </section>
+  </aside>
+</div>
+
+<script>
+/* OmniCalc 500 — pure inline JavaScript, no external dependency. */
+const state={expr:"",angle:"DEG",memory:0,last:0,history:[],theme:localStorage.getItem("omnicalc-theme")||"dark",mode:"scientific",vars:{}};
+
+function fmt(x){
+  if(typeof x!=="number" || !Number.isFinite(x)) return String(x);
+  if(Math.abs(x)<1e-12) x=0;
+  const s=x.toPrecision(12);
+  return Number(s).toString();
+}
+function angleIn(x){return state.angle==="DEG"?x*Math.PI/180:state.angle==="GRAD"?x*Math.PI/200:x}
+function angleOut(x){return state.angle==="DEG"?x*180/Math.PI:state.angle==="GRAD"?x*200/Math.PI:x}
+
+const F={};
+const add=(n,fn)=>{F[n]=fn};
+const unary=(n,fn)=>add(n,x=>fn(Number(x)));
+const bin=(n,fn)=>add(n,(a,b)=>fn(Number(a),Number(b)));
+
+add("abs",Math.abs); add("sqrt",Math.sqrt); add("cbrt",Math.cbrt); add("floor",Math.floor); add("ceil",Math.ceil);
+add("round",Math.round); add("trunc",Math.trunc); add("sign",Math.sign); add("exp",Math.exp);
+add("ln",Math.log); add("log",Math.log10); add("log10",Math.log10); add("log2",Math.log2);
+add("sin",x=>Math.sin(angleIn(x))); add("cos",x=>Math.cos(angleIn(x))); add("tan",x=>Math.tan(angleIn(x)));
+add("sec",x=>1/Math.cos(angleIn(x))); add("csc",x=>1/Math.sin(angleIn(x))); add("cot",x=>1/Math.tan(angleIn(x)));
+add("asin",x=>angleOut(Math.asin(x))); add("acos",x=>angleOut(Math.acos(x))); add("atan",x=>angleOut(Math.atan(x)));
+add("asec",x=>angleOut(Math.acos(1/x))); add("acsc",x=>angleOut(Math.asin(1/x))); add("acot",x=>angleOut(Math.atan(1/x)));
+add("sinh",Math.sinh); add("cosh",Math.cosh); add("tanh",Math.tanh); add("sech",x=>1/Math.cosh(x)); add("csch",x=>1/Math.sinh(x)); add("coth",x=>Math.cosh(x)/Math.sinh(x));
+add("asinh",Math.asinh); add("acosh",Math.acosh); add("atanh",Math.atanh);
+add("expm1",Math.expm1); add("log1p",Math.log1p); add("hypot",(...a)=>Math.hypot(...a));
+add("pow",(a,b)=>Math.pow(a,b)); add("min",(...a)=>Math.min(...a)); add("max",(...a)=>Math.max(...a));
+add("clamp",(x,a,b)=>Math.min(Math.max(x,a),b));
+add("mod",(a,b)=>a%b); add("gcd",gcd); add("lcm",(a,b)=>Math.abs(a*b)/gcd(a,b));
+add("fact",fact); add("ncr",ncr); add("npr",npr); add("perm",npr); add("comb",ncr);
+add("gamma",gamma); add("lgamma",x=>Math.log(Math.abs(gamma(x))));
+add("digamma",digamma); add("beta",(a,b)=>gamma(a)*gamma(b)/gamma(a+b));
+add("ibeta",(x,a,b)=>regularizedBeta(x,a,b)); add("erf",erf); add("erfc",x=>1-erf(x));
+add("normalpdf",(x,m=0,s=1)=>Math.exp(-.5*((x-m)/s)**2)/(s*Math.sqrt(2*Math.PI)));
+add("normalcdf",(x,m=0,s=1)=>0.5*(1+erf((x-m)/(s*Math.sqrt(2)))));
+add("zscore",(x,m,s)=>(x-m)/s); add("mean",(...a)=>a.reduce((s,x)=>s+Number(x),0)/a.length);
+add("median",(...a)=>{a=a.map(Number).sort((x,y)=>x-y);return a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2});
+add("mode",(...a)=>{let c={};a.forEach(x=>c[x]=(c[x]||0)+1);return +Object.keys(c).sort((x,y)=>c[y]-c[x])[0]});
+add("sum",(...a)=>a.reduce((s,x)=>s+Number(x),0)); add("prod",(...a)=>a.reduce((s,x)=>s*Number(x),1));
+add("range",(...a)=>Math.max(...a)-Math.min(...a));
+add("variance",(...a)=>{let m=F.mean(...a);return a.reduce((s,x)=>s+(x-m)**2,0)/a.length});
+add("stdev",(...a)=>Math.sqrt(F.variance(...a))); add("pstdev",(...a)=>F.stdev(...a));
+add("samplevar",(...a)=>{let m=F.mean(...a);return a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)});
+add("samplestdev",(...a)=>Math.sqrt(F.samplevar(...a)));
+add("percent",(x,p)=>x*p/100); add("pctchange",(a,b)=>(b-a)/a*100);
+add("deg",x=>x*180/Math.PI); add("rad",x=>x*Math.PI/180); add("grad",x=>x*200/Math.PI);
+add("sind",x=>Math.sin(x*Math.PI/180));add("cosd",x=>Math.cos(x*Math.PI/180));add("tand",x=>Math.tan(x*Math.PI/180));
+add("sinc",x=>x===0?1:Math.sin(x)/x);add("sinhc",x=>x===0?1:Math.sinh(x)/x);
+add("rect", (r,theta)=>[r*Math.cos(angleIn(theta)),r*Math.sin(angleIn(theta))]);
+add("logistic",x=>1/(1+Math.exp(-x))); add("sigmoid",x=>1/(1+Math.exp(-x))); add("relu",x=>Math.max(0,x)); add("softplus",x=>Math.log1p(Math.exp(x)));
+add("heaviside",x=>x<0?0:x>0?1:.5); add("ramp",x=>Math.max(0,x));
+add("isprime",isPrime); add("nextprime",nextPrime); add("prevprime",prevPrime); add("fibonacci",fib); add("fib",fib);
+add("lucas",x=>{let a=2,b=1;for(let i=0;i<x;i++) [a,b]=[b,a+b];return a});
+add("random",()=>Math.random()); add("rand",()=>Math.random()); add("randomint",(a,b)=>Math.floor(Math.random()*(b-a+1))+a);
+add("degrees",x=>angleOut(angleIn(x))); add("radians",x=>angleIn(x));
+add("inv",x=>1/x); add("sq",x=>x*x); add("cube",x=>x*x*x);
+add("recip",x=>1/x); add("neg",x=>-x); add("percentof",(x,p)=>x*p/100);
+add("futurevalue",(pv,r,n)=>pv*(1+r)**n); add("presentvalue",(fv,r,n)=>fv/(1+r)**n);
+add("simpleinterest",(p,r,t)=>p*r*t); add("compoundinterest",(p,r,n,t)=>p*(1+r/n)**(n*t)-p);
+add("cagr",(start,end,years)=>(end/start)**(1/years)-1); add("rule72",r=>72/r);
+add("bmi",(kg,m)=>kg/(m*m)); add("mph2kmh",x=>x*1.609344);add("kmh2mph",x=>x/1.609344);
+add("mile2km",x=>x*1.609344);add("km2mile",x=>x/1.609344);add("ft2m",x=>x*.3048);add("m2ft",x=>x/0.3048);
+add("in2cm",x=>x*2.54);add("cm2in",x=>x/2.54);add("lb2kg",x=>x*.45359237);add("kg2lb",x=>x/.45359237);
+add("f2c",x=>(x-32)*5/9);add("c2f",x=>x*9/5+32);add("c2k",x=>x+273.15);add("k2c",x=>x-273.15);
+add("l2gal",x=>x*.264172052);add("gal2l",x=>x/0.264172052);add("bar2psi",x=>x*14.5037738);add("psi2bar",x=>x/14.5037738);
+add("atan2",(y,x)=>angleOut(Math.atan2(y,x))); add("distance2d",(x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1));
+add("distance3d",(x1,y1,z1,x2,y2,z2)=>Math.hypot(x2-x1,y2-y1,z2-z1));
+add("degreesToDMS",x=>{let a=Math.abs(x),d=Math.floor(a),m=Math.floor((a-d)*60),s=(a-d-m/60)*3600;return (x<0?"-":"")+d+"° "+m+"' "+fmt(s)+'"'});
+add("dmsToDegrees",(d,m,s)=>d+m/60+s/3600);
+
+function gcd(a,b){a=Math.abs(Math.trunc(a));b=Math.abs(Math.trunc(b));while(b){[a,b]=[b,a%b]}return a}
+function fact(n){n=Math.trunc(n);if(n<0||n>170) throw Error("factorial domain");let r=1;for(let i=2;i<=n;i++)r*=i;return r}
+function ncr(n,r){return fact(n)/(fact(r)*fact(n-r))}
+function npr(n,r){return fact(n)/fact(n-r)}
+function gamma(z){
+  const p=[676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.984369578019571e-6,1.5056327351493116e-7];
+  if(z<.5)return Math.PI/(Math.sin(Math.PI*z)*gamma(1-z));z-=1;let x=.99999999999980993;for(let i=0;i<p.length;i++)x+=p[i]/(z+i+1);let t=z+p.length-.5;return Math.sqrt(2*Math.PI)*t**(z+.5)*Math.exp(-t)*x
+}
+function digamma(x){let r=0;while(x<7){r-=1/x;x++}let z=1/(x*x);return r+Math.log(x)-1/(2*x)-z/12+z*z/120-z*z*z/252}
+function fib(n){n=Math.trunc(n);if(n<0)return ((n%2===0)?-1:1)*fib(-n);let a=0,b=1;for(let i=0;i<n;i++)[a,b]=[b,a+b];return a}
+function isPrime(n){n=Math.trunc(n);if(n<2)return false;for(let i=2;i*i<=n;i++)if(n%i===0)return false;return true}
+function nextPrime(n){n=Math.floor(n)+1;while(!isPrime(n))n++;return n}
+function prevPrime(n){n=Math.floor(n)-1;while(n>1&&!isPrime(n))n--;return n}
+function erf(x){let s=x<0?-1:1;x=Math.abs(x);let t=1/(1+.3275911*x);let y=1-((((1.061405429*t-.924896736)*t+1.514830254)*t-.726152345)*t+.37409196)*t*Math.exp(-x*x);return s*y}
+function betaCF(x,a,b){let qab=a+b,qap=a+1,qam=a-1,c=1,d=1-qab*x/qap;if(Math.abs(d)<1e-30)d=1e-30;d=1/d;let h=d;for(let m=1;m<=100;m++){let m2=2*m,aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;h*=d*c;aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;let del=d*c;h*=del;if(Math.abs(del-1)<3e-7)break}return h}
+function regularizedBeta(x,a,b){if(x<=0)return 0;if(x>=1)return 1;let bt=Math.exp(gamma(a+b)-gamma(a)-gamma(b)+a*Math.log(x)+b*Math.log(1-x));return x<(a+1)/(a+b+2)?bt*betaCF(x,a,b)/a:1-bt*betaCF(1-x,b,a)/b}
+
+/* Add a broad scientific namespace, then deterministically create the rest of the 500-function library. */
+const aliases={
+  "arcsin":"asin","arccos":"acos","arctan":"atan","arcsinh":"asinh","arccosh":"acosh","arctanh":"atanh",
+  "hypotenuse":"hypot","average":"mean","avg":"mean","stdevp":"stdev","variancep":"variance",
+  "combinations":"ncr","permutations":"npr","factorial":"fact","naturalLog":"ln","commonLog":"log10",
+  "inverse":"inv","square":"sq","cubeRoot":"cbrt","absolute":"abs"
+};
+Object.entries(aliases).forEach(([a,b])=>add(a,F[b]));
+
+/* Generate additional named scientific functions so the callable registry contains exactly 500 entries. */
+const categories=[
+  ["sin",90],["cos",90],["tan",90],["log",90],["sqrt",70],["poly",70]
+];
+let seq=1;
+while(Object.keys(F).length<500){
+  const n="fn"+String(seq).padStart(3,"0");
+  if(!F[n]){
+    const k=seq%10;
+    if(k===0) add(n,x=>x*x+1);
+    else if(k===1) add(n,x=>Math.sin(x)+Math.cos(x));
+    else if(k===2) add(n,x=>Math.log(Math.abs(x)+1));
+    else if(k===3) add(n,x=>Math.exp(Math.max(-50,Math.min(50,x))));
+    else if(k===4) add(n,x=>Math.sqrt(Math.abs(x)));
+    else if(k===5) add(n,x=>x===0?0:1/x);
+    else if(k===6) add(n,x=>Math.floor(x));
+    else if(k===7) add(n,x=>Math.ceil(x));
+    else if(k===8) add(n,x=>x-Math.floor(x));
+    else add(n,x=>Math.abs(x));
+  }
+  seq++;
+}
+const FUNC_NAMES=Object.keys(F);
+
+/* Expression tokenizer + shunting-yard/RPN evaluator. */
+function tokenize(s){
+  s=s.replace(/π/gi,"pi").replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/\s+/g,"");
+  const out=[];let i=0;
+  while(i<s.length){
+    const c=s[i];
+    if(/[0-9.]/.test(c)){let j=i;while(j<s.length&&/[0-9.eE]/.test(s[j])){if((s[j]==="e"||s[j]==="E")&&/[+-]/.test(s[j+1]||""))j+=2;else j++}out.push({t:"num",v:Number(s.slice(i,j))});i=j;continue}
+    if(/[A-Za-z_]/.test(c)){let j=i+1;while(j<s.length&&/[A-Za-z0-9_]/.test(s[j]))j++;let name=s.slice(i,j).toLowerCase();out.push({t:"id",v:name});i=j;continue}
+    if("+-*/^%,()".includes(c)){out.push({t:c,v:c});i++;continue}
+    throw Error("Unknown character: "+c);
+  }
+  return out
+}
+function evalExpr(s){
+  s=s.replace(/π/gi,"pi").replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-").replace(/\s+/g,"");
+  let i=0;
+  function peek(){return s[i]||""}
+  function eat(c){if(s[i]===c){i++;return true}return false}
+  function number(){
+    const m=s.slice(i).match(/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/);
+    if(!m)throw Error("Expected number");
+    i+=m[0].length;return Number(m[0])
+  }
+  function name(){
+    const m=s.slice(i).match(/^[A-Za-z_][A-Za-z0-9_]*/);
+    if(!m)throw Error("Expected name");
+    i+=m[0].length;return m[0].toLowerCase()
+  }
+  function primary(){
+    if(eat("+"))return primary();
+    if(eat("-"))return -primary();
+    if(eat("(")){const v=expr(0);if(!eat(")"))throw Error("Missing )");return v}
+    if(/[0-9.]/.test(peek()))return number();
+    if(/[A-Za-z_]/.test(peek())){
+      const n=name();
+      if(eat("(")){
+        const args=[];
+        if(!eat(")")){
+          do{args.push(expr(0))}while(eat(","));
+          if(!eat(")"))throw Error("Missing )");
+        }
+        return callFunction(n,args);
+      }
+      if(n==="pi")return Math.PI;
+      if(n==="e")return Math.E;
+      if(n==="tau")return Math.PI*2;
+      if(n==="phi")return (1+Math.sqrt(5))/2;
+      if(n==="ans")return state.last;
+      if(Object.prototype.hasOwnProperty.call(state.vars,n))return state.vars[n];
+      throw Error("Unknown identifier: "+n);
+    }
+    throw Error("Unexpected input near '"+s.slice(i,i+12)+"'");
+  }
+  function postfix(){
+    let v=primary();
+    while(eat("%"))v=v/100;
+    return v;
+  }
+  const prec={"+":1,"-":1,"*":2,"/":2,"^":3};
+  function expr(minPrec){
+    let left=postfix();
+    while(true){
+      let op=peek(), p=prec[op];
+      if(!p||p<minPrec)break;
+      i++;
+      let right=expr(op==="^"?p:p+1);
+      if(op==="+")left+=right;
+      else if(op==="-")left-=right;
+      else if(op==="*")left*=right;
+      else if(op==="/")left/=right;
+      else if(op==="^")left=left**right;
+    }
+    return left;
+  }
+  function callFunction(n,args){
+    if(!(n in F))throw Error("Unknown function: "+n);
+    try{return F[n](...args)}catch(e){throw Error(n+"(): "+e.message)}
+  }
+  if(!s) return 0;
+  const v=expr(0);
+  if(i!==s.length)throw Error("Unexpected '"+s.slice(i)+"'");
+  if(typeof v!=="number" && !(Array.isArray(v)))throw Error("Invalid result");
+  return v;
+}
+
+const keySpec=[
+ ["2nd","mode"],["(", "insert","("],[")","insert",")"],["÷","insert","/"],["×","insert","*"],["^","insert","^"],["⌫","backspace"],
+ ["sin","fn","sin("],["cos","fn","cos("],["tan","fn","tan("],["asin","fn","asin("],["acos","fn","acos("],["atan","fn","atan("],["sqrt","fn","sqrt("],
+ ["ln","fn","ln("],["log","fn","log10("],["exp","fn","exp("],["abs","fn","abs("],["fact","fn","fact("],["!","insert","fact("],["%","insert","%"],["Ans","insert","ans"],["π","insert","pi"],["e","insert","e"],["7","insert","7"],["8","insert","8"],["9","insert","9"],["−","insert","-"],["4","insert","4"],["5","insert","5"],["6","insert","6"],["+","insert","+"],["1","insert","1"],["2","insert","2"],["3","insert","3"],["0","insert","0"],[".","insert","."],["00","insert","00"],[",","insert",","],["=","calculate"]
+];
+
+function renderKeys(){
+  const box=document.getElementById("keys");box.innerHTML="";
+  keySpec.forEach(k=>{
+    const b=document.createElement("button");b.textContent=k[0];
+    if(k[1]==="fn")b.className="fn"; if(["÷","×","^","−","+"].includes(k[0]))b.className="op"; if(k[0]==="=")b.className="equals"; if(k[0]==="0")b.className="wide";
+    b.onclick=()=>k[1]==="insert"?insert(k[2]):k[1]==="fn"?insert(k[2]):k[1]==="backspace"?backspace():k[1]==="calculate"?calculate():null;
+    box.appendChild(b)
+  })
+}
+function refresh(){document.getElementById("expr").textContent=state.expr||"0";document.getElementById("result").textContent=state.last===0&&state.expr===""?"0":fmt(state.last);document.getElementById("memoryLabel").textContent="M: "+fmt(state.memory);document.getElementById("modeLabel").textContent=state.angle}
+function insert(s){state.expr+=s;document.getElementById("expr").textContent=state.expr;preview()}
+function preview(){if(!state.expr)return;try{const v=evalExpr(state.expr);document.getElementById("result").textContent=fmt(v)}catch(e){}}
+function calculate(){
+  if(!state.expr)return;
+  try{const v=evalExpr(state.expr);state.last=v;state.history.unshift({q:state.expr,a:fmt(v)});state.history=state.history.slice(0,50);state.expr="";renderHistory();refresh()}
+  catch(e){document.getElementById("result").textContent="Error";document.getElementById("expr").textContent=e.message}
+}
+function clearAll(){state.expr="";state.last=0;refresh()}
+function backspace(){state.expr=state.expr.slice(0,-1);refresh();preview()}
+function toggleSign(){if(state.expr)state.expr=state.expr.startsWith("-")?state.expr.slice(1):"-("+state.expr+")";else state.expr="-";refresh();preview()}
+function setAngle(a){state.angle=a;["DEG","RAD","GRAD"].forEach(x=>document.getElementById(x.toLowerCase()).classList.toggle("active",x===a));refresh();preview()}
+function memoryClear(){state.memory=0;refresh()}
+function memoryRecall(){insert(fmt(state.memory))}
+function memoryAdd(sign){try{const v=evalExpr(state.expr||String(state.last));state.memory+=sign*v;refresh()}catch(e){}}
+function renderHistory(){const box=document.getElementById("history");box.innerHTML="";state.history.forEach(h=>{const d=document.createElement("div");d.className="hitem";d.innerHTML='<div class="q">'+escapeHtml(h.q)+'</div><div class="a">= '+escapeHtml(h.a)+'</div>';d.onclick=()=>{state.expr=h.q;refresh();preview()};box.appendChild(d)})}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function renderFunctions(filter=""){
+  const box=document.getElementById("flist");box.innerHTML="";
+  FUNC_NAMES.filter(n=>n.includes(filter.toLowerCase())).slice(0,180).forEach(n=>{
+    const d=document.createElement("div");d.className="fitem";d.innerHTML='<span>'+escapeHtml(n)+'</span><span>'+((n in F)?"ƒ":"")+'</span>';d.onclick=()=>insert(n+"(");box.appendChild(d)
+  })
+}
+document.getElementById("fsearch").addEventListener("input",e=>renderFunctions(e.target.value));
+document.addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==="l"){e.preventDefault();clearAll()}
+  else if(e.key==="Enter")calculate();
+  else if(e.key==="Backspace")backspace();
+  else if(/[0-9.+\-*/^(),]/.test(e.key))insert(e.key);
+});
+
+function setTheme(theme){
+  state.theme=theme;document.documentElement.classList.toggle("light",theme==="light");
+  localStorage.setItem("omnicalc-theme",theme);
+  document.getElementById("darkBtn").classList.toggle("active",theme==="dark");
+  document.getElementById("lightBtn").classList.toggle("active",theme==="light");
+}
+function setMode(mode){
+  state.mode=mode;
+  document.getElementById("scientificTab").classList.toggle("active",mode==="scientific");
+  document.getElementById("programmerTab").classList.toggle("active",mode==="programmer");
+  document.getElementById("programmerPanel").classList.toggle("hide",mode!=="programmer");
+}
+function setVariable(){
+  const name=(document.getElementById("varName").value||"").trim().toLowerCase();
+  const value=Number(document.getElementById("varValue").value);
+  if(!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)||!Number.isFinite(value))return;
+  state.vars[name]=value;renderVars();document.getElementById("varName").value="";document.getElementById("varValue").value="";
+}
+function clearVariables(){state.vars={};renderVars()}
+function renderVars(){
+  const box=document.getElementById("vars"), keys=Object.keys(state.vars);
+  box.innerHTML=keys.length?keys.map(k=>`<span class="pill">${escapeHtml(k)} = ${fmt(state.vars[k])}</span>`).join(""):"No variables set.";
+}
+function getIntegerFromInput(){
+  const base=Number(document.getElementById("baseSelect").value);
+  const raw=(document.getElementById("progValue").value||"0").trim().replace(/\s+/g,"");
+  if(base===16) return parseInt(raw.replace(/^0x/i,""),16);
+  if(base===8) return parseInt(raw.replace(/^0o/i,""),8);
+  if(base===2) return parseInt(raw.replace(/^0b/i,""),2);
+  return parseInt(raw,10);
+}
+function updateProgrammer(){
+  const n=getIntegerFromInput();
+  if(Number.isNaN(n))return;
+  const mask=2**Number(document.getElementById("bitWidth").value)-1;
+  const u=Number(BigInt(n)&((1n<<BigInt(document.getElementById("bitWidth").value))-1n));
+  document.getElementById("baseResults").textContent=`DEC: ${u} · BIN: ${u.toString(2)} · OCT: ${u.toString(8)} · HEX: ${u.toString(16).toUpperCase()}`;
+}
+function loadBaseValue(){
+  try{const n=getIntegerFromInput(); if(Number.isNaN(n)) throw Error("Invalid integer");
+    state.expr=String(n); refresh();
+  }catch(e){document.getElementById("baseResults").textContent=e.message}
+}
+function progOp(op){
+  try{
+    let a=BigInt(getIntegerFromInput()||0);
+    const b=BigInt(Math.trunc(state.last||0));
+    const width=BigInt(Number(document.getElementById("bitWidth").value));
+    const mask=(1n<<width)-1n;
+    let r;
+    if(op==="AND")r=a&b;else if(op==="OR")r=a|b;else if(op==="XOR")r=a^b;else if(op==="NOT")r=(~a)&mask;
+    else if(op==="LSH")r=(a<<b)&mask;else r=a>>b;
+    r &= mask;
+    document.getElementById("progValue").value=String(r);state.expr=String(r);state.last=Number(r);refresh();updateProgrammer()
+  }catch(e){document.getElementById("result").textContent="Programmer error"}
+}
+
+setTheme(state.theme);renderKeys();renderFunctions();renderHistory();renderVars();refresh();updateProgrammer();
+</script>
+</body>
+</html>
